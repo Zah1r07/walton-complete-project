@@ -154,14 +154,6 @@ For production, update these values:
 - Restrict `CSRF_TRUSTED_ORIGINS`
 - Use a production-ready database if the app needs to scale beyond a small deployment
 
-## Timesheets
-
-Generated timesheet documents are stored in `timesheets/`.
-
-Current generated files:
-
-- `timesheet_300_hours_bangladesh.html`
-- `timesheet_300_hours_bangladesh.pdf`
 
 ## Useful Commands
 
