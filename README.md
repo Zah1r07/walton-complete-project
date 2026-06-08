@@ -1,4 +1,4 @@
-# Walton Warranty Portal
+[# Walton Warranty Portal
 
 Full-stack warranty service portal with a Django REST backend, JWT authentication, role-based access control, and a React/Vite frontend.
 
@@ -55,3 +55,4 @@ docker compose down
 ## Environment
 
 For production, provide a strong `SECRET_KEY`, set `DEBUG=False`, and restrict `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, and `CSRF_TRUSTED_ORIGINS`.
+](https://github.com/Zah1r07/walton-complete-project)
