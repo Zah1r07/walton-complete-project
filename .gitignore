@@ -7,15 +7,12 @@ __pycache__/
 .venv/
 venv/
 env/
-*.sqlite3
-db.sqlite3
 staticfiles/
 
 # Django/local runtime
 *.log
 backend/server.out.log
 backend/server.err.log
-backend/db.sqlite3
 
 # Node/Vite
 node_modules/
