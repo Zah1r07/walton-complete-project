@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "env": {
+    "VITE_API_URL": "https://walton-complete-project-backend.vercel.app/api/"
+  },
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
