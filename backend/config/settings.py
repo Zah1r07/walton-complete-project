@@ -56,9 +56,20 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {'ACCESS_TOKEN_LIFETIME': timedelta(hours=8)}
 
+def _csv_env(name, default=''):
+    return [value.strip() for value in os.environ.get(name, default).split(',') if value.strip()]
+
+
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True').lower() in {'1', 'true', 'yes', 'on'}
-CORS_ALLOWED_ORIGINS = [origin for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
-CSRF_TRUSTED_ORIGINS = [origin for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
+CORS_ALLOWED_ORIGINS = _csv_env('CORS_ALLOWED_ORIGINS')
+CORS_ALLOWED_ORIGIN_REGEXES = _csv_env(
+    'CORS_ALLOWED_ORIGIN_REGEXES',
+    r'^https://.*\.vercel\.app$,^http://localhost:5173$,^http://127\.0\.0\.1:5173$'
+)
+CSRF_TRUSTED_ORIGINS = _csv_env(
+    'CSRF_TRUSTED_ORIGINS',
+    'https://*.vercel.app,http://localhost:5173,http://127.0.0.1:5173'
+)
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 STATIC_URL = 'static/'
