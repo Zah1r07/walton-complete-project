@@ -1,4 +1,6 @@
 import os
+import shutil
+import tempfile
 from datetime import timedelta
 from pathlib import Path
 
@@ -40,10 +42,26 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+
+def _sqlite_db_name():
+    sqlite_path = os.environ.get('SQLITE_PATH')
+    if sqlite_path:
+        return sqlite_path
+
+    default_db = BASE_DIR / 'db.sqlite3'
+    if os.environ.get('VERCEL') == '1':
+        writable_db = Path(tempfile.gettempdir()) / 'db.sqlite3'
+        if default_db.exists() and not writable_db.exists():
+            shutil.copy2(default_db, writable_db)
+        return writable_db
+
+    return default_db
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.environ.get('SQLITE_PATH', BASE_DIR / 'db.sqlite3'),
+        'NAME': _sqlite_db_name(),
     }
 }
 
@@ -55,6 +73,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {'ACCESS_TOKEN_LIFETIME': timedelta(hours=8)}
+
 
 def _csv_env(name, default=''):
     return [value.strip() for value in os.environ.get(name, default).split(',') if value.strip()]
