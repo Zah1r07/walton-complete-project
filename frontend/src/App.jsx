@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api, { clearTokens, hasToken, saveTokens } from './api';
 
 const emptyCustomer = { username: '', email: '', first_name: '', last_name: '', role: 'customer', password: '' };
@@ -114,6 +114,7 @@ function AdminPortal({ currentUser, onLogout }) {
   const [view, setView] = useState('dashboard');
   const [customerForm, setCustomerForm] = useState(emptyCustomer);
   const [productForm, setProductForm] = useState(emptyProduct);
+  const [updatingClaimId, setUpdatingClaimId] = useState(null);
 
   async function createCustomer(event) {
     event.preventDefault();
@@ -128,7 +129,12 @@ function AdminPortal({ currentUser, onLogout }) {
   }
 
   async function updateStatus(claim, status) {
-    await data.save('Claim status', () => api.patch(`claims/${claim.id}/update_status/`, { status }));
+    setUpdatingClaimId(claim.id);
+    try {
+      await data.save('Claim status', () => api.patch(`claims/${claim.id}/update_status/`, { status }));
+    } finally {
+      setUpdatingClaimId(null);
+    }
   }
 
   return (
@@ -137,7 +143,7 @@ function AdminPortal({ currentUser, onLogout }) {
       {view === 'dashboard' && <AdminDashboard data={data} />}
       {view === 'customers' && <AdminCustomers data={data} form={customerForm} setForm={setCustomerForm} onSubmit={createCustomer} />}
       {view === 'products' && <AdminProducts data={data} form={productForm} setForm={setProductForm} onSubmit={createProduct} />}
-      {view === 'claims' && <AdminClaims data={data} updateStatus={updateStatus} />}
+      {view === 'claims' && <AdminClaims data={data} updateStatus={updateStatus} updatingClaimId={updatingClaimId} />}
       {view === 'feedback' && <FeedbackList feedback={data.feedback} />}
     </Shell>
   );
@@ -152,19 +158,19 @@ function CustomerPortal({ currentUser, onLogout }) {
 
   async function registerProduct(event) {
     event.preventDefault();
-    await data.save('Registration', () => api.post('registrations/', { ...registrationForm, user: currentUser.id }));
+    await data.save('Registration', () => api.post('registrations/', { ...registrationForm, user: Number(currentUser.id), product: Number(registrationForm.product) }));
     setRegistrationForm(emptyRegistration);
   }
 
   async function createClaim(event) {
     event.preventDefault();
-    await data.save('Claim', () => api.post('claims/', claimForm));
+    await data.save('Claim', () => api.post('claims/', { ...claimForm, registration: Number(claimForm.registration) }));
     setClaimForm(emptyClaim);
   }
 
   async function createFeedback(event) {
     event.preventDefault();
-    await data.save('Feedback', () => api.post('feedback/', feedbackForm));
+    await data.save('Feedback', () => api.post('feedback/', { ...feedbackForm, claim: Number(feedbackForm.claim) }));
     setFeedbackForm(emptyFeedback);
   }
 
@@ -256,27 +262,27 @@ function CustomerDashboard({ data, setView }) {
 }
 
 function AdminCustomers({ data, form, setForm, onSubmit }) {
-  return <div className="two-column"><form className="panel form-stack" onSubmit={onSubmit}><h2>Add customer</h2><Field label="Username" value={form.username} onChange={(v) => setForm({ ...form, username: v })} /><Field label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} /><Field label="First name" value={form.first_name} onChange={(v) => setForm({ ...form, first_name: v })} /><Field label="Last name" value={form.last_name} onChange={(v) => setForm({ ...form, last_name: v })} /><Field label="Password" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} /><button className="primary-btn">Create customer</button></form><section className="panel"><h2>Customers</h2>{data.users.map((user) => <div className="list-row" key={user.id}><strong>{user.username}</strong><span>{user.email || 'No email'} - {user.role}</span></div>)}</section></div>;
+  return <div className="two-column"><form className="panel form-stack" onSubmit={onSubmit}><h2>Add customer</h2><Field label="Username" value={form.username} onChange={(v) => setForm({ ...form, username: v })} /><Field label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} /><Field label="First name" value={form.first_name} onChange={(v) => setForm({ ...form, first_name: v })} /><Field label="Last name" value={form.last_name} onChange={(v) => setForm({ ...form, last_name: v })} /><Field label="Password" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} /><button type="submit" className="primary-btn">Create customer</button></form><section className="panel"><h2>Customers</h2>{data.users.map((user) => <div className="list-row" key={user.id}><strong>{user.username}</strong><span>{user.email || 'No email'} - {user.role}</span></div>)}</section></div>;
 }
 
 function AdminProducts({ data, form, setForm, onSubmit }) {
-  return <div className="two-column"><form className="panel form-stack" onSubmit={onSubmit}><h2>Add product</h2><Field label="Serial" value={form.serial} onChange={(v) => setForm({ ...form, serial: v })} /><Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} /><Field label="Category" value={form.category} onChange={(v) => setForm({ ...form, category: v })} /><button className="primary-btn">Create product</button></form><ProductList products={data.products} /></div>;
+  return <div className="two-column"><form className="panel form-stack" onSubmit={onSubmit}><h2>Add product</h2><Field label="Serial" value={form.serial} onChange={(v) => setForm({ ...form, serial: v })} /><Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} /><Field label="Category" value={form.category} onChange={(v) => setForm({ ...form, category: v })} /><button type="submit" className="primary-btn">Create product</button></form><ProductList products={data.products} /></div>;
 }
 
-function AdminClaims({ data, updateStatus }) {
-  return <section className="panel"><h2>Claim queue</h2><ClaimTable claims={data.claims} productsById={data.productsById} registrationsById={data.registrationsById} actions={(claim) => <><button className="mini approve" onClick={() => updateStatus(claim, 'approved')}>Approve</button><button className="mini reject" onClick={() => updateStatus(claim, 'rejected')}>Reject</button></>} /></section>;
+function AdminClaims({ data, updateStatus, updatingClaimId }) {
+  return <section className="panel"><h2>Claim queue</h2><ClaimTable claims={data.claims} productsById={data.productsById} registrationsById={data.registrationsById} actions={(claim) => <><button type="button" className="mini approve" disabled={updatingClaimId === claim.id || data.loading} onClick={() => updateStatus(claim, 'approved')}>Approve</button><button type="button" className="mini reject" disabled={updatingClaimId === claim.id || data.loading} onClick={() => updateStatus(claim, 'rejected')}>Reject</button></>} /></section>;
 }
 
 function RegisterProduct({ data, form, setForm, onSubmit }) {
-  return <div className="two-column"><form className="panel form-stack" onSubmit={onSubmit}><h2>Register a product</h2><label>Product<select value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} required><option value="">Choose product</option>{data.products.map((p) => <option key={p.id} value={p.id}>{p.name} - {p.serial}</option>)}</select></label><label>Purchase date<input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} /></label><button className="primary-btn">Register product</button></form><ProductList products={data.products} /></div>;
+  return <div className="two-column"><form className="panel form-stack" onSubmit={onSubmit}><h2>Register a product</h2><label>Product<select value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} required><option value="">Choose product</option>{data.products.map((p) => <option key={p.id} value={p.id}>{p.name} - {p.serial}</option>)}</select></label><label>Purchase date<input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} /></label><button type="submit" className="primary-btn">Register product</button></form><ProductList products={data.products} /></div>;
 }
 
 function CustomerClaim({ data, form, setForm, onSubmit }) {
-  return <form className="panel form-stack narrow" onSubmit={onSubmit}><h2>Submit a claim</h2><label>Registered product<select value={form.registration} onChange={(e) => setForm({ ...form, registration: e.target.value })} required><option value="">Choose registration</option>{data.registrations.map((r) => <option key={r.id} value={r.id}>{r.product_name} - {r.product_serial}</option>)}</select></label><label>Problem description<textarea rows="5" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required /></label><button className="primary-btn">Send claim</button></form>;
+  return <form className="panel form-stack narrow" onSubmit={onSubmit}><h2>Submit a claim</h2><label>Registered product<select value={form.registration} onChange={(e) => setForm({ ...form, registration: e.target.value })} required><option value="">Choose registration</option>{data.registrations.map((r) => <option key={r.id} value={r.id}>{r.product_name} - {r.product_serial}</option>)}</select></label><label>Problem description<textarea rows="5" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required /></label><button type="submit" className="primary-btn">Send claim</button></form>;
 }
 
 function CustomerFeedback({ data, form, setForm, onSubmit }) {
-  return <form className="panel form-stack narrow" onSubmit={onSubmit}><h2>Give feedback</h2><label>Claim<select value={form.claim} onChange={(e) => setForm({ ...form, claim: e.target.value })} required><option value="">Choose claim</option>{data.claims.map((c) => <option key={c.id} value={c.id}>#{c.id} - {c.product_name}</option>)}</select></label><label>Rating<input type="number" min="1" max="5" value={form.rating} onChange={(e) => setForm({ ...form, rating: Number(e.target.value) })} /></label><label>Comment<textarea rows="5" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} required /></label><button className="primary-btn">Submit feedback</button></form>;
+  return <form className="panel form-stack narrow" onSubmit={onSubmit}><h2>Give feedback</h2><label>Claim<select value={form.claim} onChange={(e) => setForm({ ...form, claim: e.target.value })} required><option value="">Choose claim</option>{data.claims.map((c) => <option key={c.id} value={c.id}>#{c.id} - {c.product_name}</option>)}</select></label><label>Rating<input type="number" min="1" max="5" value={form.rating} onChange={(e) => setForm({ ...form, rating: Number(e.target.value) })} /></label><label>Comment<textarea rows="5" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} required /></label><button type="submit" className="primary-btn">Submit feedback</button></form>;
 }
 
 function Stats({ cards }) { return <div className="stats-grid">{cards.map(([name, value]) => <section className="stat" key={name}><span>{name}</span><strong>{value}</strong></section>)}</div>; }
