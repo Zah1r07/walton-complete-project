@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from .models import Claim, Feedback, Product, Registration, User
 from .permissions import AdminOnly, OwnerOrAdminPermission, ProductPermission, is_admin
-from .serializers import ClaimSerializer, FeedbackSerializer, ProductSerializer, RegistrationSerializer, UserSerializer
+from .serializers import ClaimSerializer, ClaimStatusSerializer, FeedbackSerializer, ProductSerializer, RegistrationSerializer, UserSerializer
 
 
 class CurrentUserView(APIView):
@@ -71,7 +71,7 @@ class ClaimViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["patch"], permission_classes=[AdminOnly])
     def update_status(self, request, pk=None):
         claim = self.get_object()
-        serializer = self.get_serializer(claim, data={"status": request.data.get("status")}, partial=True)
+        serializer = ClaimStatusSerializer(claim, data={"status": request.data.get("status")}, partial=True, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
