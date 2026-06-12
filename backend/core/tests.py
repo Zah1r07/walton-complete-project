@@ -41,3 +41,16 @@ class WarrantyApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.claim.refresh_from_db()
         self.assertEqual(self.claim.status, 'approved')
+
+    def test_admin_update_status_does_not_affect_other_claims(self):
+        other_registration = Registration.objects.create(user=self.customer, product=self.product)
+        other_claim = Claim.objects.create(registration=other_registration, description='Battery issue')
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(f'/api/claims/{self.claim.id}/update_status/', {'status': 'rejected'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.claim.refresh_from_db()
+        other_claim.refresh_from_db()
+        self.assertEqual(self.claim.status, 'rejected')
+        self.assertEqual(other_claim.status, 'pending')
