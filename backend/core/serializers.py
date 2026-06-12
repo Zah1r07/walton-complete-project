@@ -79,3 +79,9 @@ class FeedbackSerializer(serializers.ModelSerializer):
         if request and request.user.role != User.ROLE_ADMIN and value.registration.user != request.user:
             raise serializers.ValidationError("You cannot review this claim.")
         return value
+
+
+class ClaimStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Claim
+        fields = ["status"]
